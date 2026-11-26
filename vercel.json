@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/t/:id", "destination": "/t.html" },
-    { "source": "/crear", "destination": "/crear.html" }
+    { "source": "/crear", "destination": "/crear.html" },
+    { "source": "/assets/:file", "destination": "/:file" }
   ]
 }

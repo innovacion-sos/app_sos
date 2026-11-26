@@ -48,6 +48,7 @@ input,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>window.QRCode||document.write('<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"><\/script>')</script>
 <script>
 const cs = document.getElementById('cs');
 for (let i = 1; i <= 3; i++) cs.insertAdjacentHTML('beforeend', `<div class="row"><div><label>Contacto ${i}${i == 1 ? ' *' : ''}</label><input name="cn${i}" ${i == 1 ? 'required' : ''}></div><div><label>Parentesco</label><input name="cr${i}"></div><div><label>Teléfono (10 dígitos o +país)${i == 1 ? ' *' : ''}</label><input name="cp${i}" type="tel" ${i == 1 ? 'required' : ''}></div></div>`);
@@ -58,17 +59,18 @@ f.addEventListener('submit', async e => {
   d.contacts = [1, 2, 3].map(i => ({ name: d['cn' + i], rel: d['cr' + i], phone: d['cp' + i] })).filter(c => c.name && c.phone);
   try {
     const r = await fetch('/api/crear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || 'Error');
+    let j = {}; try { j = await r.json(); } catch {}
+    if (!r.ok) throw new Error(r.status === 404 ? 'No existe /api/crear: la carpeta api/ no está en tu repo/despliegue. Sube la carpeta api completa y redespliega.' : (j.error || 'Error ' + r.status + ' del servidor. Revisa Vercel → Logs.'));
     document.getElementById('out').hidden = false;
     document.getElementById('url').textContent = j.url;
     document.getElementById('go').href = j.url;
     const c = document.getElementById('qr');
-    await QRCode.toCanvas(c, j.url, { width: 320, margin: 2, errorCorrectionLevel: 'L' });
+    try { await QRCode.toCanvas(c, j.url, { width: 320, margin: 2, errorCorrectionLevel: 'L' }); }
+    catch { err.textContent = 'El enlace se creó, pero no cargó la librería del QR (¿bloqueador/Brave Shields?). Copia el enlace y genera el QR con otra herramienta, o desactiva el bloqueo y recarga.'; }
     document.getElementById('cp').onclick = () => navigator.clipboard.writeText(j.url);
     document.getElementById('dl').onclick = () => { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'sos-tag-qr.png'; a.click(); };
     document.getElementById('out').scrollIntoView({ behavior: 'smooth' });
-  } catch (x) { err.textContent = x.message; }
+  } catch (x) { err.textContent = x.message.includes('fetch') ? 'Sin conexión con el servidor.' : x.message; }
 });
 </script>
 </body>
