@@ -4,8 +4,8 @@ Al escanear el QR/NFC (`https://TU-DOMINIO/t/7F3A-92C1`) se abre la ficha médic
 ## Estructura
 - `index.html`, `style.css`, `script.js`: sitio de presentación + demo
 - `t.html`: ficha real que se abre al escanear (ruta `/t/:id`)
-- `api/tag.js`: devuelve la ficha · `api/alert.js`: envía los mensajes (Twilio)
-- `crear.html` + `api/crear.js`: crea fichas reales; los datos van cifrados dentro del enlace (sin base de datos). `api/_profiles.js`: solo la ficha demo
+- `api/index.js`: todo el servidor (crear fichas, leerlas y enviar alertas)
+- `crear.html`: formulario para crear fichas reales (datos cifrados dentro del enlace, sin base de datos)
 
 ## Despliegue (Vercel)
 1. Sube el repo a GitHub e impórtalo en Vercel (Framework "Other", sin build).

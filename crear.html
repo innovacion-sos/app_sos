@@ -47,8 +47,7 @@ input,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius
   <p style="color:#b45309;font-size:13px;margin-top:10px">⚠️ Abrir "Ver mi ficha" envía la alerta real a tus contactos. Guarda el enlace: si cambias algún dato, genera uno nuevo.</p>
 </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>window.QRCode||document.write('<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"><\/script>')</script>
+<script src="/qr.js"></script>
 <script>
 const cs = document.getElementById('cs');
 for (let i = 1; i <= 3; i++) cs.insertAdjacentHTML('beforeend', `<div class="row"><div><label>Contacto ${i}${i == 1 ? ' *' : ''}</label><input name="cn${i}" ${i == 1 ? 'required' : ''}></div><div><label>Parentesco</label><input name="cr${i}"></div><div><label>Teléfono (10 dígitos o +país)${i == 1 ? ' *' : ''}</label><input name="cp${i}" type="tel" ${i == 1 ? 'required' : ''}></div></div>`);
@@ -65,8 +64,8 @@ f.addEventListener('submit', async e => {
     document.getElementById('url').textContent = j.url;
     document.getElementById('go').href = j.url;
     const c = document.getElementById('qr');
-    try { await QRCode.toCanvas(c, j.url, { width: 320, margin: 2, errorCorrectionLevel: 'L' }); }
-    catch { err.textContent = 'El enlace se creó, pero no cargó la librería del QR (¿bloqueador/Brave Shields?). Copia el enlace y genera el QR con otra herramienta, o desactiva el bloqueo y recarga.'; }
+    try { makeQR(c, j.url, 320); }
+    catch { err.textContent = 'El enlace se creó, pero no se pudo dibujar el QR. Copia el enlace y úsalo en el tag NFC.'; }
     document.getElementById('cp').onclick = () => navigator.clipboard.writeText(j.url);
     document.getElementById('dl').onclick = () => { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'sos-tag-qr.png'; a.click(); };
     document.getElementById('out').scrollIntoView({ behavior: 'smooth' });
