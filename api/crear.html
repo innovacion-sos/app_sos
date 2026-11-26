@@ -1327,7 +1327,7 @@ f.addEventListener('submit', async e => {
   const d = Object.fromEntries(new FormData(f));
   d.contacts = [1, 2, 3].map(i => ({ name: d['cn' + i], rel: d['cr' + i], phone: d['cp' + i] })).filter(c => c.name && c.phone);
   try {
-    const r = await fetch('/api/sos?action=crear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+    const r = await fetch('/api/crear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
     let j = {}; try { j = await r.json(); } catch {}
     if (!r.ok) throw new Error(r.status === 404 ? 'No existe /api/crear: la carpeta api/ no está en tu repo/despliegue. Sube la carpeta api completa y redespliega.' : (j.error || 'Error ' + r.status + ' del servidor. Revisa Vercel → Logs.'));
     document.getElementById('out').hidden = false;
