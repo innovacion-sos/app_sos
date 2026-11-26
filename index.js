@@ -104,6 +104,7 @@ async function alerta2(req, res) {
 /* ---------- enrutador ---------- */
 module.exports = (req, res) => {
   const a = String(req.query.action || '');
+  if (a === 'ping') return res.json({ ok: true, version: 'v5', secret: !!process.env.TOKEN_SECRET, twilio: !!process.env.TWILIO_SID });
   if (a === 'crear') return crear(req, res);
   if (a === 'tag') return tag(req, res);
   if (a === 'alert') return alerta(req, res);
