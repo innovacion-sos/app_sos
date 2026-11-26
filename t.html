@@ -73,11 +73,11 @@ async function sendAlert() {
   const pos = await getPos();           // el navegador pide permiso de ubicación una vez
   try {
     const r = await fetch('/api/alert', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...pos }) });
-    if (!r.ok) throw 0;
-    const d = await r.json();
+    let d = {}; try { d = await r.json(); } catch {}
+    if (!r.ok) throw new Error('HTTP ' + r.status + (d.error ? ': ' + d.error : ''));
     if (d.throttled) return setAlert('✅ Los contactos ya fueron avisados hace unos minutos.', 'sent');
     setAlert(`✅ Alerta enviada a ${d.sent} de ${d.total} contactos${pos ? ' con ubicación GPS' : ' (sin ubicación: GPS no permitido)'}${d.dry ? ' · MODO PRUEBA' : ''}`, 'sent');
-  } catch { setAlert('⚠️ No se pudo enviar la alerta. Llama directamente a un contacto.', 'err', true); }
+  } catch (e) { setAlert('⚠️ No se pudo enviar la alerta (' + e.message + '). Llama directamente a un contacto.', 'err', true); }
 }
 </script>
 </body>
