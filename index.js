@@ -73,7 +73,10 @@ async function twilio(to, from, body) {
   return r.ok;
 }
 async function alerta(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  try { await alerta2(req, res); } catch (e) { console.error(e); if (!res.headersSent) res.status(500).json({ error: String(e.message || e) }); }
+}
+async function alerta2(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'metodo ' + req.method });
   const t0 = Date.now(), { id, lat, lon, acc } = req.body || {};
   const p = lookup(String(id || ''));
   if (!p) return res.status(404).json({ error: 'not_found' });
