@@ -73,10 +73,7 @@ async function twilio(to, from, body) {
   return r.ok;
 }
 async function alerta(req, res) {
-  try { await alerta2(req, res); } catch (e) { console.error(e); if (!res.headersSent) res.status(500).json({ error: String(e.message || e) }); }
-}
-async function alerta2(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'metodo ' + req.method });
+  if (req.method !== 'POST') return res.status(405).end();
   const t0 = Date.now(), { id, lat, lon, acc } = req.body || {};
   const p = lookup(String(id || ''));
   if (!p) return res.status(404).json({ error: 'not_found' });
@@ -104,9 +101,8 @@ async function alerta2(req, res) {
 /* ---------- enrutador ---------- */
 module.exports = (req, res) => {
   const a = String(req.query.action || '');
-  if (a === 'ping') return res.json({ ok: true, version: 'v5', secret: !!process.env.TOKEN_SECRET, twilio: !!process.env.TWILIO_SID });
   if (a === 'crear') return crear(req, res);
-  if (a === 'tag') return tag(req, res);
+  if (a === 'tag') return req.method === 'POST' ? alerta(req, res) : tag(req, res);
   if (a === 'alert') return alerta(req, res);
   res.status(404).json({ error: 'not_found' });
 };

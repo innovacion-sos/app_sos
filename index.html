@@ -1,112 +1,148 @@
-// SOS TAG NFC — todo el servidor en un archivo: /api/crear, /api/tag, /api/alert
-const crypto = require('crypto'), zlib = require('zlib');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOS TAG NFC — Ficha médica de emergencia</title>
+<meta name="description" content="Sistema integrado de respuesta rápida y ficha médica de emergencia con tag NFC/QR vinculado a un token NFT.">
+<meta property="og:title" content="SOS TAG NFC">
+<meta property="og:description" content="Escanea. Ve la ficha médica. Avisa con GPS. Sin apps, sin registro.">
+<meta property="og:image" content="assets/ficha-medica.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚑</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav" id="top">
+  <a href="#top" class="logo">SOS <span>TAG</span> NFC</a>
+  <nav>
+    <a href="#producto">Producto</a>
+    <a href="#proceso">Proceso</a>
+    <a href="#mercado">Mercado</a>
+    <a href="#equipo">Equipo</a>
+    <a href="#interfaz">Interfaz</a>
+  </nav>
+  <a class="btn btn-sm" href="/crear">Crear mi ficha</a>
+</header>
 
-/* ---------- ficha demo ---------- */
-const DEMO = {
-  "7F3A-92C1": {
-    name: "María Ramírez Torres", age: 34, role: "Ciclista", city: "Guadalajara, Jal.", blood: "O+",
-    allergies: ["Penicilina", "Látex", "Ibuprofeno"], conditions: ["Asma moderada", "Hipotiroidismo"],
-    meds: ["Salbutamol inhalado", "Levotiroxina 50 mcg"], insurance: { name: "Seguro GNP", policy: "••••4821" },
-    contacts: [{ name: "Luis Torres", rel: "Padre", phone: "+523300000001" }, { name: "Ana Ramírez", rel: "Hermana", phone: "+523300000002" }]
-  }
-};
+<main>
+<section class="hero">
+  <div class="hero-text reveal">
+    <span class="pill"><i></i> Respuesta rápida en emergencias</span>
+    <h1>Un escaneo.<br><em>Una vida.</em></h1>
+    <p>Sistema integrado de respuesta rápida y ficha médica de emergencia. Quien auxilia escanea el llavero o sticker NFC/QR y ve al instante alergias, tipo de sangre y contactos, mientras se alerta con GPS a la familia.</p>
+    <div class="cta">
+      <a class="btn" href="#demo">Probar la demo</a>
+      <a class="btn ghost" href="#proceso">Cómo funciona</a>
+    </div>
+    <ul class="stats">
+      <li><b>0</b><span>apps por instalar</span></li>
+      <li><b>3</b><span>pasos para auxiliar</span></li>
+      <li><b>iOS + Android</b><span>lecturas probadas</span></li>
+    </ul>
+  </div>
+  <div class="hero-img reveal">
+    <img src="assets/ficha-medica.png" alt="Ficha médica de emergencia al escanear el tag" width="1500" height="860">
+  </div>
+</section>
 
-/* ---------- token cifrado (AES-256-GCM) ---------- */
-const key = () => {
-  if (!process.env.TOKEN_SECRET) throw new Error('Falta TOKEN_SECRET');
-  return crypto.createHash('sha256').update(process.env.TOKEN_SECRET).digest();
-};
-const encode = o => {
-  const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', key(), iv);
-  const enc = Buffer.concat([c.update(zlib.deflateRawSync(JSON.stringify(o))), c.final()]);
-  return Buffer.concat([iv, c.getAuthTag(), enc]).toString('base64url');
-};
-const decode = t => {
-  try {
-    const b = Buffer.from(t, 'base64url'), d = crypto.createDecipheriv('aes-256-gcm', key(), b.subarray(0, 12));
-    d.setAuthTag(b.subarray(12, 28));
-    return JSON.parse(zlib.inflateRawSync(Buffer.concat([d.update(b.subarray(28)), d.final()])).toString());
-  } catch { return null; }
-};
-const lookup = id => DEMO[id] || (id.length > 40 ? decode(id) : null);
+<section id="producto" class="sec">
+  <h2 class="reveal">El tema y el producto</h2>
+  <div class="grid2">
+    <article class="card reveal">
+      <h3>Dispositivo físico</h3>
+      <p>Llavero o sticker NFC con código QR, vinculado a un token digital (NFT) que almacena la información médica esencial del usuario y activa protocolos inmediatos de auxilio en caso de percance.</p>
+    </article>
+    <article class="card reveal">
+      <h3>Proyección a futuro</h3>
+      <p>Consolidar el estándar de identidad médica en emergencias urbanas y deportivas, con integraciones directas con aseguradoras, redes hospitalarias y servicios asistenciales.</p>
+    </article>
+  </div>
+</section>
 
-/* ---------- /api/crear ---------- */
-const s = (v, n = 80) => String(v || '').replace(/[<>]/g, '').trim().slice(0, n);
-const list = v => (Array.isArray(v) ? v : String(v || '').split(',')).map(x => s(x, 60)).filter(Boolean).slice(0, 12);
-const phone = v => {
-  let t = String(v || '').replace(/[^\d+]/g, '');
-  if (/^\d{10}$/.test(t)) t = '+52' + t;
-  return /^\+\d{10,15}$/.test(t) ? t : null;
-};
-function crear(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-  const b = req.body || {};
-  const contacts = (Array.isArray(b.contacts) ? b.contacts : []).slice(0, 3)
-    .map(c => ({ name: s(c.name, 50), rel: s(c.rel, 30), phone: phone(c.phone) })).filter(c => c.name && c.phone);
-  if (!s(b.name) || !contacts.length) return res.status(400).json({ error: 'Falta tu nombre o al menos un contacto con teléfono válido.' });
-  const p = {
-    name: s(b.name), age: parseInt(b.age) || '', role: s(b.role, 40), city: s(b.city, 50), blood: s(b.blood, 5) || '?',
-    allergies: list(b.allergies), conditions: list(b.conditions), meds: list(b.meds),
-    insurance: s(b.insurance) ? { name: s(b.insurance), policy: s(b.policy, 30) } : null, contacts
-  };
-  try { res.json({ url: `https://${req.headers.host}/t/${encode(p)}` }); }
-  catch { res.status(500).json({ error: 'Servidor sin configurar: agrega la variable TOKEN_SECRET en Vercel y haz Redeploy.' }); }
-}
+<section id="proceso" class="sec dark">
+  <h2 class="reveal">Proceso operativo</h2>
+  <ol class="steps">
+    <li class="reveal"><span>1</span><h3>Escaneo inmediato</h3><p>El transeúnte o paramédico escanea el sticker o llavero vía NFC o QR, sin instalar aplicaciones.</p></li>
+    <li class="reveal"><span>2</span><h3>Despliegue médico</h3><p>Aparece en pantalla la ficha crítica: alergias, tipo de sangre, padecimientos y contactos clave.</p></li>
+    <li class="reveal"><span>3</span><h3>Alerta GPS en tiempo real</h3><p>Se envía automáticamente un mensaje al contacto de emergencia con la ubicación exacta del evento.</p></li>
+  </ol>
+</section>
 
-/* ---------- /api/tag ---------- */
-function tag(req, res) {
-  const p = lookup(String(req.query.id || ''));
-  if (!p) return res.status(404).json({ error: 'not_found' });
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ ...p, contacts: p.contacts.map(c => ({ name: c.name, rel: c.rel, tel: c.phone })) });
-}
+<section id="mercado" class="sec">
+  <h2 class="reveal">Análisis de mercado y ventaja</h2>
+  <div class="grid3">
+    <article class="card reveal"><h3>Mercado objetivo</h3><p>Deportistas de alto riesgo, ciclistas, motociclistas, adultos mayores y personas con condiciones médicas severas.</p></article>
+    <article class="card reveal"><h3>Diferenciador clave</h3><p>Solución cero fricción: quien auxilie no requiere registrarse ni bajar software.</p></article>
+    <article class="card reveal"><h3>Valor del token (NFT)</h3><p>Garantiza la inmutabilidad de la propiedad del dispositivo, la autenticidad del perfil digital y habilita la gestión descentralizada de suscripciones o registros asistenciales.</p></article>
+  </div>
+</section>
 
-/* ---------- /api/alert ---------- */
-const last = new Map(), WAIT = 5 * 60 * 1000;
-async function twilio(to, from, body) {
-  const sid = process.env.TWILIO_SID, tok = process.env.TWILIO_TOKEN;
-  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-    method: 'POST',
-    headers: { Authorization: 'Basic ' + Buffer.from(sid + ':' + tok).toString('base64'), 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ To: to, From: from, Body: body })
-  });
-  return r.ok;
-}
-async function alerta(req, res) {
-  try { await alerta2(req, res); } catch (e) { console.error(e); if (!res.headersSent) res.status(500).json({ error: String(e.message || e) }); }
-}
-async function alerta2(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'metodo ' + req.method });
-  const t0 = Date.now(), { id, lat, lon, acc } = req.body || {};
-  const p = lookup(String(id || ''));
-  if (!p) return res.status(404).json({ error: 'not_found' });
-  const n = last.get(id);
-  if (n && Date.now() - n < WAIT) return res.json({ sent: 0, total: p.contacts.length, throttled: true });
-  last.set(id, Date.now());
-  const hasLoc = Number.isFinite(+lat) && Number.isFinite(+lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
-  const loc = hasLoc
-    ? `Ubicación: https://maps.google.com/?q=${(+lat).toFixed(5)},${(+lon).toFixed(5)}${Number.isFinite(+acc) ? ` (±${Math.round(acc)} m)` : ''}`
-    : 'Ubicación no disponible (el tag fue escaneado sin permiso de GPS).';
-  const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
-  const body = `🚨 SOS TAG: ${p.name} fue escaneada tras un posible percance (${hora}). ${loc} Tipo ${p.blood}${p.allergies.length ? ', alergias: ' + p.allergies.join(', ') : ''}.`;
-  const live = process.env.TWILIO_SID && process.env.TWILIO_TOKEN && process.env.TWILIO_SMS_FROM;
-  let sent = 0;
-  for (const c of p.contacts) {
-    if (!live) { console.log('[DRY RUN]', c.phone, body); sent++; continue; }
-    const jobs = [twilio(c.phone, process.env.TWILIO_SMS_FROM, body)];
-    if (process.env.TWILIO_WA_FROM) jobs.push(twilio('whatsapp:' + c.phone, 'whatsapp:' + process.env.TWILIO_WA_FROM, body));
-    const ok = await Promise.all(jobs.map(j => j.catch(() => false)));
-    if (ok.some(Boolean)) sent++;
-  }
-  res.json({ sent, total: p.contacts.length, dry: !live, ms: Date.now() - t0 });
-}
+<section id="equipo" class="sec alt">
+  <h2 class="reveal">Estructura del equipo y avance</h2>
+  <div class="grid3">
+    <article class="card reveal"><h3>🔧 Hardware y NFC</h3><p>Configuración de tags físicos NFC, impresión de códigos QR de alta durabilidad y selección de materiales resistentes a la intemperie.</p></article>
+    <article class="card reveal"><h3>💻 Software y alertas</h3><p>Web app responsiva, base de datos encriptada y motor de envío automatizado de ubicación GPS.</p></article>
+    <article class="card reveal"><h3>🔗 Web3 y negocio</h3><p>Smart contract para el registro NFT, esquema de privacidad e investigación de mercado.</p></article>
+  </div>
+  <h3 class="sub reveal">Estado del avance</h3>
+  <ul class="status reveal">
+    <li class="ok">✅ Prototipo físico NFC/QR probado con lecturas en dispositivos iOS y Android.</li>
+    <li class="ok">✅ Interfaz web de perfil médico responsivo completada y optimizada para carga rápida.</li>
+    <li class="ok">✅ Alerta automática por SMS/WhatsApp con ubicación GPS al escanear el tag (QR/NFC).</li>
+    <li class="wip">🔄 En proceso: despliegue del smart contract en mainnet.</li>
+  </ul>
+</section>
 
-/* ---------- enrutador ---------- */
-module.exports = (req, res) => {
-  const a = String(req.query.action || '');
-  if (a === 'ping') return res.json({ ok: true, version: 'v7', secret: !!process.env.TOKEN_SECRET, twilio: !!process.env.TWILIO_SID });
-  if (a === 'crear') return crear(req, res);
-  if (a === 'tag') return req.method === 'POST' ? alerta(req, res) : tag(req, res);
-  if (a === 'alert') return alerta(req, res);
-  res.status(404).json({ error: 'not_found' });
-};
+<section id="demo" class="sec">
+  <h2 class="reveal">Demo interactiva</h2>
+  <p class="lead reveal">Así lo ve quien auxilia al escanear el tag (datos de ejemplo).</p>
+  <div class="demo reveal">
+    <button class="btn" id="scan">📲 Escanear tag NFC</button>
+    <a class="btn ghost" href="/t/7F3A-92C1">Abrir la ficha real (envía alerta)</a>
+    <div class="ficha" id="ficha" hidden>
+      <div class="ficha-head">
+        <div class="avatar">MR</div>
+        <div><h3>María Ramírez Torres</h3><p>34 años · Ciclista · Guadalajara, Jal.</p></div>
+        <div class="blood"><small>TIPO DE SANGRE</small><b>O+</b></div>
+      </div>
+      <div class="ficha-body">
+        <div>
+          <h4>Alergias</h4><p class="chips r"><span>Penicilina</span><span>Látex</span><span>Ibuprofeno</span></p>
+          <h4>Padecimientos</h4><p class="chips"><span>Asma moderada</span><span>Hipotiroidismo</span></p>
+          <h4>Medicamentos</h4><p class="chips"><span>Salbutamol inhalado</span><span>Levotiroxina 50 mcg</span></p>
+        </div>
+        <div>
+          <h4>Contactos de emergencia</h4>
+          <ul class="contacts">
+            <li><b>Luis Torres</b><small>Padre · Notificado ✓</small></li>
+            <li><b>Ana Ramírez</b><small>Hermana · Notificada ✓</small></li>
+            <li><b>Seguro GNP</b><small>Póliza #••••4821</small></li>
+          </ul>
+        </div>
+      </div>
+      <div class="alert" id="alert">📍 Enviando ubicación a contactos de emergencia…</div>
+    </div>
+  </div>
+</section>
+
+<section id="interfaz" class="sec dark">
+  <h2 class="reveal">Avance de la interfaz web</h2>
+  <div class="gallery">
+    <figure class="reveal"><img src="assets/ficha-medica.png" alt="Ficha médica de emergencia" loading="lazy"><figcaption>Ficha médica de emergencia al escanear (NFC/QR)</figcaption></figure>
+    <figure class="reveal"><img src="assets/diseno-responsivo.png" alt="Diseño responsivo" loading="lazy"><figcaption>Diseño responsivo: escritorio, tableta y celular</figcaption></figure>
+    <figure class="reveal"><img src="assets/alerta-gps.png" alt="Alerta GPS" loading="lazy"><figcaption>Alerta GPS con ubicación en tiempo real</figcaption></figure>
+    <figure class="reveal"><img src="assets/panel-nft.png" alt="Panel del dispositivo y token NFT" loading="lazy"><figcaption>Panel del dispositivo y token NFT</figcaption></figure>
+  </div>
+</section>
+</main>
+
+<footer>
+  <b>SOS <span>TAG</span> NFC</b>
+  <p>Proyecto universitario · Universidad de Guadalajara, CUCEI</p>
+</footer>
+<script src="script.js"></script>
+</body>
+</html>
