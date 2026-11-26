@@ -5,12 +5,12 @@ Al escanear el QR/NFC (`https://TU-DOMINIO/t/7F3A-92C1`) se abre la ficha médic
 - `index.html`, `style.css`, `script.js`: sitio de presentación + demo
 - `t.html`: ficha real que se abre al escanear (ruta `/t/:id`)
 - `api/tag.js`: devuelve la ficha · `api/alert.js`: envía los mensajes (Twilio)
-- `api/_profiles.js`: perfiles y contactos (cambiar teléfonos reales)
+- `crear.html` + `api/crear.js`: crea fichas reales; los datos van cifrados dentro del enlace (sin base de datos). `api/_profiles.js`: solo la ficha demo
 
 ## Despliegue (Vercel)
 1. Sube el repo a GitHub e impórtalo en Vercel (Framework "Other", sin build).
-2. En Settings → Environment Variables agrega las de `.env.example` (Twilio). Sin ellas corre en MODO PRUEBA (no envía, solo registra en logs).
-3. Genera el QR con la URL `https://TU-DOMINIO/t/7F3A-92C1` y grábala en el tag NFC como registro URL (app NFC Tools).
+2. Agrega TOKEN_SECRET (frase larga aleatoria; sin ella /crear no funciona). En Settings → Environment Variables agrega las de `.env.example` (Twilio). Sin ellas corre en MODO PRUEBA (no envía, solo registra en logs).
+3. Entra a `https://TU-DOMINIO/crear`, llena tu ficha real, genera el QR y grábala en el tag NFC como registro URL (app NFC Tools).
 4. Prueba escaneando con iPhone y Android.
 
 ## Notas

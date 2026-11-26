@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crear mi ficha — SOS TAG NFC</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.wrap{max-width:760px;margin:24px auto;padding:0 14px}
+form,.out{background:#fff;border-radius:20px;padding:26px;box-shadow:0 10px 40px -20px rgba(11,20,36,.3)}
+label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 4px}
+input,select{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;font:16px Inter,sans-serif}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.chk{display:flex;gap:8px;align-items:flex-start;margin:18px 0;font-size:14px}.chk input{width:auto;margin-top:4px}
+#err{color:#b91c1c;font-weight:600;margin-top:10px}
+.out{margin-top:20px;text-align:center}.out canvas{margin:12px auto}
+.url{word-break:break-all;font-size:12px;background:#f1f5f9;border-radius:10px;padding:10px;text-align:left;max-height:90px;overflow:auto}
+.out .btn{margin:6px 4px}
+</style>
+</head>
+<body>
+<div class="nav"><a class="logo" href="/">SOS <span>TAG</span> NFC</a><a class="btn btn-sm" href="/">Inicio</a></div>
+<div class="wrap">
+<h2 style="margin-top:20px;font-size:32px">Crear mi ficha médica</h2>
+<form id="f">
+  <div class="row"><div><label>Nombre completo *</label><input name="name" required></div><div><label>Edad</label><input name="age" type="number" min="0" max="120"></div></div>
+  <div class="row"><div><label>Ocupación / deporte</label><input name="role"></div><div><label>Ciudad</label><input name="city"></div>
+  <div><label>Tipo de sangre</label><select name="blood"><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option value="?">No sé</option></select></div></div>
+  <label>Alergias (separadas por coma)</label><input name="allergies" placeholder="Penicilina, látex">
+  <label>Padecimientos</label><input name="conditions" placeholder="Asma, diabetes">
+  <label>Medicamentos</label><input name="meds" placeholder="Salbutamol inhalado">
+  <div class="row"><div><label>Seguro médico (opcional)</label><input name="insurance"></div><div><label>No. de póliza (opcional)</label><input name="policy"></div></div>
+  <h4 style="margin-top:22px">Contactos de emergencia (reciben el mensaje al escanear)</h4>
+  <div id="cs"></div>
+  <label class="chk"><input type="checkbox" id="ok" required> Mis contactos aceptan recibir alertas por SMS/WhatsApp y entiendo que cualquier persona que escanee el tag verá esta información.</label>
+  <button class="btn" type="submit">Generar mi QR / enlace NFC</button>
+  <div id="err"></div>
+</form>
+<div class="out" id="out" hidden>
+  <h3>✅ Tu ficha está lista</h3>
+  <canvas id="qr"></canvas>
+  <p style="color:var(--mut);font-size:14px">Imprime el QR o graba este enlace en el tag NFC (app NFC Tools → Escribir → URL).</p>
+  <div class="url" id="url"></div>
+  <button class="btn" id="cp">Copiar enlace</button>
+  <button class="btn ghost" id="dl">Descargar QR</button>
+  <a class="btn ghost" id="go" target="_blank">Ver mi ficha</a>
+  <p style="color:#b45309;font-size:13px;margin-top:10px">⚠️ Abrir "Ver mi ficha" envía la alerta real a tus contactos. Guarda el enlace: si cambias algún dato, genera uno nuevo.</p>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+const cs = document.getElementById('cs');
+for (let i = 1; i <= 3; i++) cs.insertAdjacentHTML('beforeend', `<div class="row"><div><label>Contacto ${i}${i == 1 ? ' *' : ''}</label><input name="cn${i}" ${i == 1 ? 'required' : ''}></div><div><label>Parentesco</label><input name="cr${i}"></div><div><label>Teléfono (10 dígitos o +país)${i == 1 ? ' *' : ''}</label><input name="cp${i}" type="tel" ${i == 1 ? 'required' : ''}></div></div>`);
+const f = document.getElementById('f'), err = document.getElementById('err');
+f.addEventListener('submit', async e => {
+  e.preventDefault(); err.textContent = '';
+  const d = Object.fromEntries(new FormData(f));
+  d.contacts = [1, 2, 3].map(i => ({ name: d['cn' + i], rel: d['cr' + i], phone: d['cp' + i] })).filter(c => c.name && c.phone);
+  try {
+    const r = await fetch('/api/crear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'Error');
+    document.getElementById('out').hidden = false;
+    document.getElementById('url').textContent = j.url;
+    document.getElementById('go').href = j.url;
+    const c = document.getElementById('qr');
+    await QRCode.toCanvas(c, j.url, { width: 320, margin: 2, errorCorrectionLevel: 'L' });
+    document.getElementById('cp').onclick = () => navigator.clipboard.writeText(j.url);
+    document.getElementById('dl').onclick = () => { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'sos-tag-qr.png'; a.click(); };
+    document.getElementById('out').scrollIntoView({ behavior: 'smooth' });
+  } catch (x) { err.textContent = x.message; }
+});
+</script>
+</body>
+</html>

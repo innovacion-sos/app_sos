@@ -1,4 +1,4 @@
-const P = require('./_profiles');
+const lookup = require('./_lookup');
 const last = new Map(); // antiabuso (por instancia): 1 alerta por tag cada 5 min
 const WAIT = 5 * 60 * 1000;
 
@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   const t0 = Date.now();
   const { id, lat, lon, acc } = req.body || {};
-  const p = P[String(id || '')];
+  const p = lookup(String(id || ''));
   if (!p) return res.status(404).json({ error: 'not_found' });
 
   const n = last.get(id);

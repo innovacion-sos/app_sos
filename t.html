@@ -36,7 +36,7 @@ function render(p) {
   const ini = p.name.split(' ').slice(0, 2).map(w => w[0]).join('');
   root.innerHTML = `
   <div class="ficha-head"><div class="avatar">${esc(ini)}</div>
-    <div><h3>${esc(p.name)}</h3><p>${p.age} años · ${esc(p.role)} · ${esc(p.city)}</p></div>
+    <div><h3>${esc(p.name)}</h3><p>${[p.age ? p.age + ' años' : '', p.role, p.city].filter(Boolean).map(esc).join(' · ')}</p></div>
     <div class="blood"><small>TIPO DE SANGRE</small><b>${esc(p.blood)}</b></div></div>
   <div class="ficha-body"><div>
     <h4>Alergias</h4>${chips(p.allergies, 'r')}
@@ -44,10 +44,10 @@ function render(p) {
     <h4>Medicamentos</h4>${chips(p.meds)}</div>
   <div><h4>Contactos de emergencia</h4><ul class="contacts">
     ${p.contacts.map(c => `<li><a class="call" href="tel:${esc(c.tel)}">Llamar</a><b>${esc(c.name)}</b><small>${esc(c.rel)} · Notificado</small></li>`).join('')}
-    ${p.insurance ? `<li><b>${esc(p.insurance.name)}</b><small>Póliza #${esc(p.insurance.policy)}</small></li>` : ''}
+    ${p.insurance ? `<li><b>${esc(p.insurance.name)}</b><small>${p.insurance.policy ? 'Póliza #' + esc(p.insurance.policy) : 'Seguro'}</small></li>` : ''}
   </ul></div></div>
   <div class="alert" id="alert"></div>`;
-  document.getElementById('foot').textContent = 'Leído vía NFC/QR · sostag.app/t/' + id;
+  document.getElementById('foot').textContent = 'Leído vía NFC/QR · SOS TAG NFC';
   sendAlert();
 }
 

@@ -1,5 +1,6 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [{ "source": "/t/:id", "destination": "/t.html" }]
+  "rewrites": [
+    { "source": "/t/:id", "destination": "/t.html" },
+    { "source": "/crear", "destination": "/crear.html" }
+  ]
 }
